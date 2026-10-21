@@ -56,3 +56,7 @@ test('HTTP error does not include key or upstream URL',async()=>{
  const res={status(n){this.code=n;return this},setHeader(){},json(data){this.data=data}}
  await liveHandler({method:'POST'},res);assert.equal(res.code,405);assert.deepEqual(res.data,{error:'method_not_allowed'})
 })
+
+test('real production false positives are excluded: delayed games, card breaks, simulations and venue cameras',()=>{
+ for(const title of ['Venados vs Yaquis [DIFERIDO] JUEGO 1','MLB BREAKS #sportscards','24/7 Monster Jam in Baseball Stadiums','ActionSims Baseball!','Baseball Field 7 Sports Complex','🎙 En vivo Naranjeros vs Jaguares','BASEBALL 5 CUP']) assert.equal(inspectVideo(video('AAAAAAAAAAA',title),now),'excluded',title)
+})

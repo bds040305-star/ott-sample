@@ -2,7 +2,7 @@ const TTL = 300000
 export class LiveError extends Error {
   constructor(code, status = 502) { super(code); this.code = code; this.status = status }
 }
-const excluded = /gameplay|simulation|simulator|mlb\s*(the\s*)?show|\bthe show\s*\d*|\b(?:ootp|ps5|ps4|xbox|esports|e-sports)\b|highlights?|watch[ -]?along|commentary|analysis|predictions?|play[ -]?by[ -]?play|live\s*(?:score|reaction|chat)|scoreboard|radio|audio[ -]?only|replay|rebroadcast|하이라이트|시뮬레|게임\s*플레이|컴투스|마구마구|프로야구스피리츠|9\s*innings|입중계|문자\s*중계|해설|분석|재방송|다시\s*보기|스코어보드|예측|ソフトボール|softball|소프트볼/i
+const excluded = /diferido|diferida|rebroadcast|retransmisi[oó]n|repetici[oó]n|narraci[oó]n|sportscards|sports[ -]?cards|livebreaks?|\bbreaks?\b|actionsims|\bsims?\b|monster\s*jam|baseball\s*5|sports\s*complex|baseball\s*field\s*\d|webcam|카드\s*깡|카드\s*개봉|🎙|gameplay|simulation|simulator|mlb\s*(the\s*)?show|\bthe show\s*\d*|\b(?:ootp|ps5|ps4|xbox|esports|e-sports)\b|highlights?|watch[ -]?along|commentary|analysis|predictions?|play[ -]?by[ -]?play|live\s*(?:score|reaction|chat)|scoreboard|radio|audio[ -]?only|replay|rebroadcast|하이라이트|시뮬레|게임\s*플레이|컴투스|마구마구|프로야구스피리츠|9\s*innings|입중계|문자\s*중계|해설|분석|재방송|다시\s*보기|스코어보드|예측|ソフトボール|softball|소프트볼/i
 export function inspectVideo(video, now = Date.now()) {
   const details = video.liveStreamingDetails || {}
   if (details.actualEndTime) return 'ended'
