@@ -1,71 +1,82 @@
-# 스포츠 페이지
+# 실제 야구 라이브
 
-메인 메뉴 마지막의 **스포츠**(`/sports`)에서 MLB 경기 일정, 경기별 시청 영역, 동시 접속자 채팅을 제공합니다.
+## 구현
 
-## 실행
+메뉴 마지막의 **스포츠**(`/sports`)에서 실제 YouTube 라이브 후보를 검색합니다. MLB 일정·예시 경기·임의 시청자 수와 이전 게스트/SSE 채팅은 제거했습니다. 기존 영화·TV 메뉴, Google 로그인과 Firebase 프로젝트를 재사용합니다. 로그인 페이지를 스포츠에서 열면 로그인 후 `/sports`로 돌아오며, Firebase 세션도 새로고침 시 복원합니다.
 
-### Vercel 배포
+화면은 조회 중, 결과 없음, 키 누락, API 권한 실패, 할당량 초과, 네트워크 실패, 플레이어 실패, 방송 종료를 구분합니다. 원본 영상 링크를 항상 제공합니다. 모바일에서는 플레이어 아래에 채팅이 표시됩니다.
 
-`main`을 연결한 기존 Vercel 프로젝트에서 자동 배포합니다. `vercel.json`이 Vite 빌드·출력 경로와 SPA 라우팅을 설정하며, 배포 빌드에서는 `VITE_CHAT_TRANSPORT=firestore`, `VITE_BASEBALL_API_PATH=/api/baseball`을 적용합니다. 이 값들은 공개 설정으로 비밀 키가 아닙니다.
+## 데이터 출처와 검증 범위
 
-Vercel에서는 상시 Node 서버 대신 기존 Firebase 프로젝트 `ott-test-5a1de`의 Firestore 실시간 구독으로 메시지와 접속 상태를 공유합니다. 경기별 `sportsRooms/{gamePk}/messages` 및 `presence` 컬렉션을 사용합니다. 게스트 ID는 브라우저에 보관하고 접속 상태는 30초마다 갱신하며, 비정상 종료된 접속은 90초 뒤 인원에서 제외합니다. 메시지는 Firestore에 저장되고 최근 100개를 표시합니다. 자동 메시지 삭제나 관리자 기능은 포함하지 않습니다.
+공식 API 사양:
 
-현재 프로젝트의 비로그인 읽기, 임시 메시지 작성 및 해당 임시 기록 삭제를 실제 확인했습니다. Firebase 규칙은 변경하지 않았습니다. 기존 공개 접근 권한을 사용하므로 Firestore 모드의 300자·전송 간격 제한은 브라우저 검증입니다. Node 모드와 달리 서버에서 강제하는 제한은 아니며, 운영 정책에 맞는 인증·보안 규칙은 Firebase 콘솔에서 관리해야 합니다. 규칙을 제한하면 읽기/작성 권한을 별도로 허용해야 합니다.
+- https://developers.google.com/youtube/v3/docs/search/list
+- https://developers.google.com/youtube/v3/docs/videos/list
+- https://developers.google.com/youtube/v3/docs/channels/list
+- https://developers.google.com/youtube/iframe_api_reference
+- WBSC 채널 식별 대상: https://www.youtube.com/@WBSC
+- 공식 단체 홈페이지: https://www.wbsc.org/
 
-`/api/baseball`은 MLB 일정만 요청하는 Vercel 함수이며, 허용한 날짜 형식과 최대 31일 범위만 받아 15초 캐시합니다. API 키를 요구하지 않습니다. 기존 영화·YouTube 키는 Vercel 프로젝트 환경 변수에 별도로 등록해야 하며 Git에는 저장하지 않습니다.
+이 클라우드에서 Google 문서·YouTube 페이지 요청은 프록시 403, WBSC 홈페이지 요청은 CloudFront 403이었습니다. 따라서 해당 페이지 내용과 WBSC 소유권을 이 세션에서 직접 재확인했다고 주장하지 않습니다. WBSC 필터는 실행 시 `channels.list(forHandle=WBSC)`로 정확한 채널 ID를 확인한 뒤 검색과 결과에 그 ID를 강제합니다. 실제 API 검증은 키 등록 후 `npm run verify:sports:live`로 수행해야 합니다.
 
-### 로컬 / 독립 Node 서버
+`/api/live-baseball`은 서버에서 다음 절차를 수행합니다.
+
+1. `search.list`: `q=baseball` 및 `q=야구`, `type=video`, `eventType=live`, `videoEmbeddable=true`, `order=viewCount`, `regionCode=KR`, 페이지당 50개. 검색어별 최대 2페이지를 읽고 중복을 제거합니다. WBSC 필터는 해당 채널 내 `baseball`만 검색합니다.
+2. `videos.list`: `snippet,status,liveStreamingDetails,contentDetails`로 공개 여부, 임베드 허용, 실제 방송 시작 시각, 종료 시각, 현재 live 상태와 알려진 한국 지역 제한을 확인합니다.
+3. 게임 카테고리·MLB The Show·시뮬레이션·게임플레이·하이라이트·입중계·문자중계·해설·분석·재방송·소프트볼 등 명확한 제외 키워드를 제목/설명에서 거릅니다. 키워드 분류는 완벽한 의미·중계권 검증이 아닙니다. 제목을 속인 방송이 통과할 가능성이 있으므로 운영 시 신고·검수 정책이 필요합니다.
+4. 공개된 `concurrentViewers` 내림차순으로 정렬합니다. 공개 숫자가 있는 실제 방송만 TOP 5에 포함합니다. 5개 미만이면 그 개수만, 시청자 수가 비공개면 ‘비공개’로 표시합니다. 0명으로 꾸미지 않습니다.
+
+‘전체’는 YouTube 전체를 완전히 열거한다는 의미가 아니라 검색 범위 안에서 재검증된 모든 결과입니다. 후보 상한은 전체 200개, WBSC 100개이며 페이지가 더 있으면 화면에 알립니다. 검색 호출의 할당량 비용이 높으므로 5분 갱신만으로도 기본 일일 할당량을 소진할 수 있습니다. 초과하면 오류를 숨기지 않습니다.
+
+서버 메모리 캐시·동시 요청 합치기와 Vercel CDN 캐시를 5분 적용합니다. 브라우저는 목록과 선택 방송 상태를 5분마다 갱신합니다. 수동 재확인도 유효한 서버 캐시를 우회하지 않습니다. 플레이어의 실제 종료 이벤트는 즉시 반영합니다. 목록에서 사라졌다는 사실만으로 ‘방송 종료’라고 판정하지 않습니다. IFrame API의 실제 재생 이벤트와 임베드 실패를 구분하며, iframe 로드만으로 재생 성공이라고 표시하지 않습니다.
+
+## 환경 변수와 실행
+
+키 값은 Git·문서·로그·채팅에 넣지 않습니다. 환경 설정의 안전한 값 입력 경로만 사용하세요.
+
+- **필수:** 서버 전용 `YOUTUBE_API_KEY`. YouTube Data API v3 활성화 및 서버 사용에 맞는 키 제한이 필요합니다. 키 누락은 실제 API 조회를 막습니다.
+- **이행 호환:** 이미 서버에 주입된 `VITE_YOUTUBE_API_KEY`도 읽을 수 있으나, `VITE_` 값은 기존 앱의 브라우저 코드에 포함될 수 있으므로 새 검색용 키는 서버 전용으로 설정하세요. 기존 에피소드 YouTube 검색은 여전히 `VITE_YOUTUBE_API_KEY`를 사용합니다.
+- **기존 영화:** `VITE_TMDB_API_KEY`는 별도입니다.
+- **Firebase:** 기존 `src/firebase/firebase.js` 설정을 재사용합니다. 해당 프로젝트의 Google 로그인·승인 도메인과 Firestore 규칙이 필요합니다. Firebase 웹 구성의 기존 공개 값은 이번 변경에 새로 복사하지 않았습니다.
+
+설정 후 개발 서버 재시작 또는 Vercel 재배포가 필요합니다. 네트워크 대상은 `www.googleapis.com`, `www.youtube.com` 및 YouTube 플레이어·미디어 호스트, 기존 Firebase 인증·Firestore 호스트입니다. YouTube 미디어 URL은 제공자가 동적으로 정하며, 실제 재생 시 필요한 호스트는 브라우저 오류로 확인해야 합니다.
 
 ```sh
 npm ci
 npm run dev -- --host 0.0.0.0
-```
-
-개발 서버에 채팅 서버가 함께 시작됩니다. 배포 시에는 다음처럼 Node 서버를 실행합니다.
-
-```sh
+# 또는 독립 Node 서버
 npm run build
 npm start
 ```
 
-기본 포트는 3000이며 `PORT`로 변경할 수 있습니다. `/sports` 직접 접근도 지원합니다. 정적 파일만 호스팅하면 채팅은 작동하지 않습니다. 프록시는 `/api/sports/`의 SSE 응답 버퍼링을 끄고 장시간 연결을 허용해야 합니다. 같은 서버 주소에 접속한 사용자끼리 대화합니다.
+Vite 개발·프리뷰와 독립 Node 서버 모두 같은 라이브 API를 사용합니다. Vercel은 `api/live-baseball.js` 함수와 `vercel.json`의 SPA 라우팅을 사용합니다. 비밀 키를 `vercel.json`에 넣지 않습니다.
 
-## 경기 데이터
+## 회원 채팅과 기존 규칙 보존
 
-- MLB Stats API의 `schedule?sportId=1`로 오늘 전후 7일의 일정을 가져옵니다. 별도 API 키는 필요하지 않습니다.
-- 30초마다 갱신하며 진행 중 → 예정 → 종료 순으로 표시합니다. 시각은 한국 시간입니다.
-- 네트워크 허용 대상: `statsapi.mlb.com`. 초기에는 프록시 403으로 차단되었으나 이후 재검증에서는 조회가 성공했습니다. 2026-10-14~2026-10-28 조회 결과 12개 경기를 확인했습니다. 2026-10-21 당일 조회는 0개였으며, 현재 진행 중인 중계가 있다는 의미는 아닙니다.
-- 실제 경기 수가 6개 미만이면 ‘예시’ 카드로 목록을 보충합니다. 예시 점수나 가짜 LIVE 상태를 만들지 않습니다. 실제 경기 5개 이상이 동시에 진행된다고 보장할 수는 없습니다.
-- 실패 시 마지막 수신 데이터는 유지하며, 수신한 데이터가 전혀 없으면 6개 예시를 표시합니다. 12초 요청 제한, 수동 새로고침, 컴포넌트 해제 시 요청 취소를 지원합니다.
+`auth.onAuthStateChanged`로 기존 Firebase 사용자를 확인합니다. 비로그인 사용자는 채팅 구독·쓰기를 시작하지 않고 기존 Google 로그인으로 안내합니다. 방송 ID별 `liveBaseballRooms/{videoId}/messages`에 `onSnapshot`을 연결합니다. 방송·사용자 변경과 언마운트 때 구독을 해제합니다. 최근 100개, 300자 제한, 전송 중·실패, 1.5초 클라이언트 전송 간격을 제공합니다. 클라이언트 전송 간격은 서버 측 속도 제한이 아닙니다.
 
-## 중계 영상
+**운영 규칙은 자동 배포하지 않았습니다.** 현재 운영 규칙 전체를 읽거나 배포할 Firebase 관리자 인증이 없습니다. `firebase/live-baseball.rules.fragment`의 match 블록을 기존 `match /databases/{database}/documents` 안에 병합해야 합니다. 기존 users 등 규칙을 덮어쓰지 마세요. 이 파일은 다음을 강제합니다.
 
-공식 MLB 미디어 센터 `https://www.mlb.com/live-stream-games`를 확인하여 상단과 플레이어 영역에 연결했습니다. 예시 경기에서도 이 링크는 사용할 수 있으며 새 탭으로 열려 앱의 채팅방을 유지합니다. 공식 페이지의 HTTP 응답은 200이며 `X-Frame-Options: SAMEORIGIN`이므로 앱의 iframe으로 이 페이지를 표시할 수 없습니다. 로그인·구독 및 지역 제한이 적용될 수 있습니다. 공개 일정 API는 재생 가능한 중계 영상을 제공하지 않습니다. 임의의 영상이나 하이라이트를 해당 경기의 실시간 중계로 표시하지 않습니다.
+- 인증된 사용자만 읽기/작성, 발신 UID와 `request.auth.uid` 일치
+- 메시지 필드·타입·이름/본문 길이·서버 시각 검증
+- 수정·삭제 금지
 
-승인된 YouTube 또는 Twitch 임베드 URL이 확보되면, 비밀이 아닌 공개 재생 주소를 게임 ID(`gamePk`)에 매핑합니다. `.env.local` 예시 형식:
+Firestore는 겹치는 `allow`를 OR로 평가합니다. 기존 `match /{document=**} { allow ...: if true; }` 같은 광범위 허용이 있으면 새 블록만 추가해도 보안이 강제되지 않습니다. 해당 허용의 범위를 좁히되 기존 앱 경로에 필요한 권한은 보존해야 합니다. 기존 규칙을 읽지 못했으므로 안전한 전체 병합 결과를 만들었다고 주장하지 않습니다. 제공된 테스트는 독립 규칙 조각을 에뮬레이터에 적용한 결과이며 운영 규칙 검증을 대신하지 않습니다.
 
-```dotenv
-VITE_BASEBALL_STREAMS='{"실제_gamePk":"https://www.youtube.com/embed/승인된_영상_ID"}'
-```
+Firebase Authentication의 승인 도메인에 실제 배포 호스트가 필요할 수 있습니다. 운영 Google 계정 두 개를 이용한 실제 로그인·채팅 확인은 관리자 설정과 사용자 로그인이 필요한 별도 검증입니다.
 
-YouTube는 `www.youtube.com/embed/ID` 또는 `www.youtube-nocookie.com/embed/ID`, Twitch는 `https://player.twitch.tv/?channel=채널명` 형식을 지원합니다. Twitch `parent`는 현재 호스트로 설정됩니다. 설정 후 개발 서버를 재시작하거나 다시 빌드하세요. 실제 게임 ID와 승인된 주소를 등록하기 전에는 영상 준비 상태와 공식 시청 안내를 표시합니다. `VITE_` 값은 브라우저에 공개되므로 자격 증명을 넣지 마세요.
-
-## 실시간 채팅
-
-Node 내장 HTTP 서버의 SSE와 POST로 구현하여 Firebase 규칙 변경이나 계정 키 없이 실제 사용자 간 메시지를 전달합니다. 게스트 닉네임은 서버가 부여하며 HttpOnly/SameSite 쿠키로 접속자를 구별합니다. 같은 브라우저의 탭들은 같은 접속자로 집계합니다. 다른 브라우저나 기기는 별도 접속자로 집계됩니다.
-
-- 경기별 독립 대화방, 접속 인원, 최근 메시지 100개, 재연결 시 기록 복구, 연결 종료 정리
-- 300자 제한, 공백 거부, 1.5초 전송 간격, 요청 크기 제한, 방·세션·연결 수 제한, 동일 출처 검사
-- 메시지는 React 텍스트로 출력하여 HTML을 실행하지 않습니다.
-- 메시지와 세션은 단일 서버 메모리에만 보관됩니다. 서버 재시작 시 삭제되며 여러 서버 간 공유되지 않습니다. 장기 보관·다중 인스턴스·차단/신고/운영자 관리가 필요하면 저장소와 운영 기능을 추가해야 합니다.
-- 영상이 없는 예시 방에서도 실제 채팅을 시험할 수 있습니다.
-
-## 검증
+## 반복 가능한 검증
 
 ```sh
-npm run test:sports
+npm run test:sports          # 주입한 모의 YouTube 응답, 실제 API 성공을 뜻하지 않음
+npm run test:rules           # Java 21, Firestore 에뮬레이터; 실 운영 접근 없음
 npm run build
-npx eslint src/pages/Sports.jsx src/features/sports/*.js src/features/sports/*.jsx server/*.js vite.config.js
+npx eslint src/pages/Sports.jsx src/pages/Login.jsx src/store/useAuthStore.js src/features/sports/*.js src/features/sports/*.jsx server/*.js server/*.mjs api/*.js vite.config.js
+PORT=3001 npm start          # 브라우저 검증용 별도 터미널
+npm run test:sports:browser  # 시스템 Chromium 필요, 기본 3001/sports
+npm run verify:sports:live   # 실제 키 필요; 누락/실패는 종료 코드 1
 ```
 
-통합 테스트는 독립 접속자 간 실제 SSE 전달, 접속 인원 갱신, 경기별 메시지 격리, 새 접속자의 최근 기록 수신, 입력 제한과 출처 검사를 확인합니다. 저장소 전체 린트에는 기존 소스 오류가 남아 있습니다.
+브라우저 테스트는 실제 서버의 missing_key 응답을 먼저 확인하고, 이후 테스트 전용 API/플레이어를 주입합니다. TOP5/전체, WBSC, 선택, 로그인 유도, 할당량 오류, 모바일 가로 넘침을 검증하며 실제 YouTube 영상 재생 성공으로 계산하지 않습니다. 스크린샷 경로는 테스트 출력에 표시합니다. 테스트 ID·가짜 응답은 운영 API 경로에 내장하지 않습니다.
+
+2026-10-21 검증: 모의 API 테스트 5개 통과, 에뮬레이터 두 사용자 송수신·방별 격리·비로그인/UID 위조/길이/시각/추가 필드/수정/삭제 거부 통과, 브라우저 모의 동작 통과, 빌드·변경 코드 린트 통과. 현재 클라우드에 YouTube 키가 없어 실제 라이브 조회와 실제 영상 재생은 차단되었습니다. 운영 Firebase 관리자 인증과 실제 두 Google 사용자 로그인도 없어 운영 규칙·채팅은 미검증입니다. 배포 검증 결과는 작업 최종 보고 및 Git 커밋을 확인하세요.

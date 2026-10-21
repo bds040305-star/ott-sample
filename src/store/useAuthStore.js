@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import {
+    onAuthStateChanged,
     signInWithPopup,
     signOut
 } from "firebase/auth";
@@ -42,7 +43,7 @@ export const useAuthStore = create((set) => ({
             );
 
 
-            console.log("구글 로그인 성공", result);
+
 
 
             const user = result.user;
@@ -60,10 +61,7 @@ export const useAuthStore = create((set) => ({
             const userDoc = await getDoc(userRef);
 
 
-            console.log(
-                "가져온 정보",
-                userDoc.data()
-            );
+
 
 
             // 신규 사용자
@@ -180,3 +178,15 @@ export const useAuthStore = create((set) => ({
     }
 
 }));
+// Restore the existing Firebase session after a reload, including sports navigation.
+const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+    if (!firebaseUser) { useAuthStore.setState({ user: null, currentMember: null }); return; }
+    if (useAuthStore.getState().user?.uid === firebaseUser.uid) return;
+    let profile = { uid: firebaseUser.uid, name: firebaseUser.displayName, email: firebaseUser.email };
+    try {
+        const snapshot = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (snapshot.exists()) profile = { ...snapshot.data(), uid: firebaseUser.uid };
+    } catch { /* Keep the authenticated identity even if profile reading is unavailable. */ }
+    if (auth.currentUser?.uid === firebaseUser.uid) useAuthStore.setState({ user: profile });
+});
+if (import.meta.hot) import.meta.hot.dispose(unsubscribeAuth);

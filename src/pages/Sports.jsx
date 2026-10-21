@@ -1,33 +1,61 @@
-import { useEffect, useState } from 'react'
-import { EXAMPLE_GAMES, loadGames, streamUrl } from '../features/sports/games'
+import { useCallback, useEffect, useState } from 'react'
 import { GameChat } from '../features/sports/GameChat'
+import { LivePlayer } from '../features/sports/LivePlayer'
 import './Sports.css'
 
-const gameTime = game => game.date ? new Date(game.date).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '일정 예시'
-const gameStatus = game => game.example ? '예시' : game.state === 'Live' ? 'LIVE' : game.state === 'Final' ? '경기 종료' : game.status === 'Scheduled' || game.status === 'Pre-Game' ? '경기 예정' : game.status
-
-function Broadcast({ game }) {
-  const [failed, setFailed] = useState(false)
-  let stream = null
-  try { stream = streamUrl(JSON.parse(import.meta.env.VITE_BASEBALL_STREAMS || '{}')[game.id]) } catch { /* No valid stream configuration. */ }
-  return <div className="sports-player">
-    {stream && !failed ? <iframe src={stream} title={`${game.away} 대 ${game.home} 공식 중계`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onError={() => setFailed(true)} /> : <div className="sports-player-empty">
-      <span className="sports-baseball" aria-hidden="true">⚾</span>
-      <span className="sports-eyebrow">BASEBALL CLUB</span>
-      <h2>{game.example ? '야구를 즐기는 또 하나의 방법' : `${game.away} vs ${game.home}`}</h2>
-      <p>{game.example ? '경기를 고르고, 함께 응원하고, 즐거운 순간을 나누세요.' : failed ? '중계 정보를 불러오지 못했습니다.' : '등록된 공식 중계 영상이 없습니다.'}</p>
-      <span className="sports-player-note">{game.example ? '화면 예시 · 실제 생중계가 아닙니다' : '공식 사이트에서 중계 제공 여부와 시청 조건을 확인하세요.'}</span>
-      <a className="sports-official-link" href="https://www.mlb.com/live-stream-games" target="_blank" rel="noopener noreferrer">MLB 공식 중계 보기 ↗</a>
-      <small className="sports-stream-terms">새 탭에서 열립니다 · 로그인·구독 및 지역 제한이 적용될 수 있습니다.</small>
-    </div>}
-    <div className="sports-player-top"><span className={game.state === 'Live' ? 'sports-badge live' : 'sports-badge'}>{gameStatus(game)}</span><span>MLB · BASEBALL</span></div>
+const messages = {
+  missing_key: 'YouTube 검색 키가 설정되지 않았습니다. 서버 환경 설정에 YOUTUBE_API_KEY가 필요합니다.',
+  permission_denied: 'YouTube API 키 또는 API 사용 권한을 확인해 주세요.',
+  quota_exceeded: 'YouTube API 조회 할당량을 초과했습니다. 할당량이 복구된 뒤 다시 시도해 주세요.',
+  network_error: 'YouTube에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  channel_unavailable: 'WBSC 채널을 확인하지 못했습니다.',
+  upstream_error: '라이브 검색 서비스에 일시적인 오류가 발생했습니다.',
+}
+async function getLive(params, signal) {
+  const response = await fetch(`/api/live-baseball?${new URLSearchParams(params)}`, { signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]) })
+  const result = await response.json()
+  if (!response.ok) throw new Error(messages[result.error] || '라이브 정보를 불러오지 못했습니다.')
+  return result
+}
+function viewersText(video) { return video.viewers === null ? '시청자 수 비공개' : `${new Intl.NumberFormat('ko-KR').format(video.viewers)}명 시청 중` }
+function VideoCard({ video, selected, onSelect, rank }) {
+  return <button className={`sports-game-card live-card ${selected ? 'selected' : ''}`} onClick={() => onSelect(video)} aria-pressed={selected}>
+    <div className="live-thumbnail">{video.thumbnail && <img src={video.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" />}<span className="sports-badge live">LIVE</span>{rank && <b className="live-rank">{rank}</b>}</div>
+    <h3>{video.title}</h3><p>{video.channelTitle}</p><div className="sports-card-bottom"><span>{viewersText(video)}</span><strong>{selected ? '선택한 방송' : '시청 · 채팅'} ↗</strong></div>
+  </button>
+}
+function Watch({ video }) {
+  const [state, setState] = useState('live')
+  const [error, setError] = useState('')
+  const onEnded = useCallback(() => setState('ended'), [])
+  useEffect(() => {
+    const controller = new AbortController()
+    let busy = false
+    async function check() {
+      if (busy) return
+      busy = true
+      try {
+        const result = await getLive({ videoId: video.id }, controller.signal)
+        if (!controller.signal.aborted) { setState(result.videoState); setError('') }
+      } catch (failure) { if (!controller.signal.aborted) setError(failure.message) }
+      finally { busy = false }
+    }
+    check()
+    const interval = setInterval(check, 300000)
+    return () => { controller.abort(); clearInterval(interval) }
+  }, [video.id])
+  return <div className="sports-watch-layout">
+    <section className="sports-watch" aria-label="선택한 야구 라이브">
+      {state === 'live' ? <LivePlayer video={video} onEnded={onEnded} /> : <div className="sports-player sports-player-empty"><h2>{state === 'ended' ? '방송이 종료되었습니다.' : '이 방송은 현재 재생할 수 없습니다.'}</h2><a className="sports-official-link" href={video.originalUrl} target="_blank" rel="noopener noreferrer">YouTube 원본 확인 ↗</a></div>}
+      <div className="sports-match-info"><div><p>{video.channelTitle} · {viewersText(video)}</p><h2>{video.title}</h2></div></div>
+      {error && <p role="alert" className="live-inline-error">방송 상태 재확인 실패: {error}</p>}
+    </section>
+    <GameChat video={video} />
   </div>
 }
-
-export function Sports() {
-  const [feed, setFeed] = useState({ games: [], loading: true, error: '', updated: null })
-  const [selectedId, setSelectedId] = useState(null)
-  const [filter, setFilter] = useState('all')
+function LiveContent({ channel }) {
+  const [feed, setFeed] = useState({ data: null, loading: true, error: '' })
+  const [picked, setPicked] = useState(null)
   const [retry, setRetry] = useState(0)
   useEffect(() => {
     const controller = new AbortController()
@@ -36,49 +64,35 @@ export function Sports() {
       if (inFlight) return
       inFlight = true
       try {
-        const games = await loadGames(controller.signal)
-        if (!controller.signal.aborted) setFeed({ games, loading: false, error: '', updated: new Date() })
-      } catch (error) {
-        if (!controller.signal.aborted) setFeed(previous => ({ ...previous, loading: false, error: error.name === 'TimeoutError' ? '경기 정보 응답이 지연되고 있습니다.' : '경기 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' }))
-      } finally { inFlight = false }
+        const data = await getLive({ channel }, controller.signal)
+        if (!controller.signal.aborted) setFeed({ data, loading: false, error: '' })
+      } catch (failure) { if (!controller.signal.aborted) setFeed(previous => ({ ...previous, loading: false, error: failure.name === 'TimeoutError' ? '라이브 검색 응답이 지연되고 있습니다.' : failure.message || '라이브 검색에 실패했습니다.' })) }
+      finally { inFlight = false }
     }
     refresh()
-    const interval = setInterval(refresh, 30000)
+    const interval = setInterval(refresh, 300000)
     return () => { controller.abort(); clearInterval(interval) }
-  }, [retry])
-
-  const examples = !feed.loading && feed.games.length === 0
-  const games = feed.loading ? [] : [...feed.games, ...EXAMPLE_GAMES.slice(0, Math.max(0, 6 - feed.games.length))]
-  const selected = games.find(game => game.id === selectedId) || games[0]
-  const visible = games.filter(game => filter === 'all' || (filter === 'live' ? game.state === 'Live' : !game.example && game.state === 'Preview'))
-  const liveCount = feed.games.filter(game => game.state === 'Live').length
-
-  return <main className="sports-page">
-    <div className="sports-container">
-      <div className="sports-page-heading"><div><p className="sports-eyebrow">PLAY TOGETHER. CHEER TOGETHER.</p><h1>스포츠 <span>LIVE</span></h1><p>오늘의 야구, 함께라서 더 뜨겁게.</p></div><a className="sports-league" href="https://www.mlb.com/live-stream-games" target="_blank" rel="noopener noreferrer">⚾ &nbsp; MLB 공식 중계 ↗</a></div>
-      <div className="sports-feed-status" role="status">
-        <span>{feed.loading ? '경기 일정을 불러오고 있습니다…' : feed.error ? `${feed.error} ${feed.games.length ? '마지막 수신 데이터를 표시합니다.' : '아래 6개 경기는 화면 예시입니다.'}` : examples ? '조회 기간에 경기가 없습니다. 아래 6개 경기는 화면 예시입니다.' : `진행 중 ${liveCount}경기 · 최근 및 예정 경기 ${feed.games.length}개`}</span>
-        <button onClick={() => setRetry(value => value + 1)} aria-label="경기 정보 새로고침">↻ 새로고침</button>
-      </div>
-      {selected && <div className="sports-watch-layout">
-        <section className="sports-watch" aria-label="선택한 경기 중계">
-          <Broadcast key={selected.id} game={selected} />
-          <div className="sports-match-info"><div><p>{selected.example ? '경기 화면 미리보기' : `${selected.venue} · ${gameTime(selected)} (한국 시간)`}</p><h2>{selected.away} <span>vs</span> {selected.home}</h2></div><div className="sports-main-score">{selected.awayScore ?? '–'} <span>:</span> {selected.homeScore ?? '–'}<small>{selected.inning ? `${selected.inning} ${selected.inningHalf === 'Top' ? '초' : '말'}` : gameStatus(selected)}</small></div></div>
-        </section>
-        <GameChat key={selected.id} game={selected} />
-      </div>}
-      <section className="sports-schedule" aria-labelledby="sports-schedule-title">
-        <div className="sports-schedule-heading"><h2 id="sports-schedule-title">경기 센터 <span>{games.length.toString().padStart(2, '0')}</span></h2><p>MLB · 전후 7일 일정 · 한국 시간 기준</p></div>
-        <div className="sports-filters" role="group" aria-label="경기 필터">{[['all', '전체 경기'], ['live', `진행 중 ${liveCount}`], ['upcoming', '예정 경기']].map(([value, label]) => <button key={value} aria-pressed={filter === value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}<span>{feed.updated ? `${feed.updated.toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul' })} 갱신 · 30초 간격` : '실제 경기 데이터 수신 대기'}</span></div>
-        <div className="sports-games">{visible.map((game, index) => <button key={game.id} className={`sports-game-card ${selected?.id === game.id ? 'selected' : ''}`} onClick={() => setSelectedId(game.id)} aria-pressed={selected?.id === game.id}>
-          <div className="sports-card-top"><span className={game.state === 'Live' ? 'sports-badge live' : 'sports-badge'}>{gameStatus(game)}</span><span>{gameTime(game)}</span></div>
-          <div className="sports-team"><span className={`sports-team-icon team-${index % 3}`}>{game.away.slice(0, 1)}</span><strong>{game.away}</strong><b>{game.awayScore ?? '–'}</b></div>
-          <div className="sports-team"><span className={`sports-team-icon team-${(index + 1) % 3}`}>{game.home.slice(0, 1)}</span><strong>{game.home}</strong><b>{game.homeScore ?? '–'}</b></div>
-          <div className="sports-card-bottom"><span>{game.venue}</span><strong>{selected?.id === game.id ? '선택한 경기' : '경기 보기'} ↗</strong></div>
-        </button>)}</div>
-        {!feed.loading && visible.length === 0 && <p className="sports-no-games">{filter === 'live' ? '현재 진행 중인 경기가 없습니다.' : '표시할 예정 경기가 없습니다.'} 전체 경기에서 다른 경기를 확인해 주세요.</p>}
-        <p className="sports-disclaimer">경기 데이터: MLB Stats API · 실제 경기 수와 일정은 시즌에 따라 달라집니다. 경기가 6개 미만이면 ‘예시’ 카드를 함께 표시합니다. 영상 제공 및 시청 가능 여부는 중계 권한과 지역에 따라 다릅니다.</p>
-      </section>
-    </div>
-  </main>
+  }, [channel, retry])
+  const videos = feed.data?.videos || []
+  const top = feed.data?.top || []
+  const selected = videos.find(video => video.id === picked?.id) || picked || videos[0]
+  return <>
+    <div className="sports-feed-status" role="status"><span>{feed.loading ? '공개 야구 라이브를 검색하고 방송 상태를 확인하고 있습니다…' : feed.error ? `${feed.error}${feed.data ? ' 마지막 조회 결과를 표시합니다.' : ''}` : `검증된 공개 라이브 ${videos.length}개 · ${new Date(feed.data.checkedAt).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul' })} 확인 (한국 시간)`}</span><button onClick={() => setRetry(n => n + 1)} disabled={feed.loading}>↻ 다시 확인</button></div>
+    {!feed.loading && !feed.error && videos.length === 0 && <div className="live-empty"><span aria-hidden="true">⚾</span><h2>현재 확인된 야구 경기 라이브가 없습니다.</h2><p>진행 중인 공개·임베드 허용 방송만 표시합니다. 예시 영상으로 채우지 않습니다.</p></div>}
+    {selected && <Watch key={selected.id} video={selected} />}
+    <section className="sports-schedule" aria-labelledby="live-top-title"><div className="sports-schedule-heading"><h2 id="live-top-title">인기 TOP 5 <span>{top.length}개</span></h2><p>공개된 동시 시청자 수 기준</p></div>
+      <div className="sports-games live-top-grid">{top.map((video, index) => <VideoCard key={video.id} video={video} rank={index + 1} selected={selected?.id === video.id} onSelect={setPicked} />)}</div>
+      {!feed.loading && top.length === 0 && <p className="sports-no-games">시청자 수가 공개된 라이브가 없습니다.</p>}
+    </section>
+    <section className="sports-schedule" aria-labelledby="live-all-title"><div className="sports-schedule-heading"><h2 id="live-all-title">검색된 전체 라이브 <span>{videos.length}개</span></h2><p>비공개 시청자 수는 순위에서 제외</p></div><div className="sports-games">{videos.map(video => <VideoCard key={video.id} video={video} selected={selected?.id === video.id} onSelect={setPicked} />)}</div></section>
+    <p className="sports-disclaimer">YouTube Data API v3 · 5분 캐시 및 자동 갱신 · {channel === 'wbsc' ? 'WBSC(@WBSC) 채널 내 baseball 검색' : 'baseball / 야구 검색'} · 검색 범위 최대 {feed.data?.searchCap || (channel === 'wbsc' ? 100 : 200)}개 후보 검증{feed.data?.searchLimited ? ' (추가 검색 결과가 있습니다)' : ''}.<br />공개·임베드 허용·실제 방송 시작·미종료 상태를 확인하고 게임·하이라이트·분석 등 명확한 비경기 콘텐츠를 제외합니다. 제목·설명만으로 중계 성격과 권리·지역별 실제 재생을 완전히 보장할 수는 없습니다. 시청자 수 비공개는 0명으로 표시하지 않습니다.</p>
+  </>
+}
+export function Sports() {
+  const [channel, setChannel] = useState('all')
+  return <main className="sports-page"><div className="sports-container">
+    <div className="sports-page-heading"><div><p className="sports-eyebrow">PLAY TOGETHER. CHEER TOGETHER.</p><h1>스포츠 <span>LIVE</span></h1><p>실제 야구 라이브를 찾고, 같은 경기를 함께 응원하세요.</p></div><a className="sports-league" href="https://www.youtube.com/@WBSC" target="_blank" rel="noopener noreferrer">WBSC 채널 ↗</a></div>
+    <div className="sports-filters" role="group" aria-label="라이브 채널 필터"><button aria-pressed={channel === 'all'} className={channel === 'all' ? 'active' : ''} onClick={() => setChannel('all')}>전체 야구</button><button aria-pressed={channel === 'wbsc'} className={channel === 'wbsc' ? 'active' : ''} onClick={() => setChannel('wbsc')}>WBSC 공식 야구</button></div>
+    <LiveContent key={channel} channel={channel} />
+  </div></main>
 }

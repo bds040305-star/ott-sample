@@ -2,8 +2,10 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "build": { "env": { "VITE_CHAT_TRANSPORT": "firestore", "VITE_BASEBALL_API_PATH": "/api/baseball" } },
   "rewrites": [
-    { "source": "/((?!api(?:/|$)|assets(?:/|$)|images(?:/|$)|.*\\.[^/]+$).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api(?:/|$)|assets(?:/|$)|images(?:/|$)|.*\\.[^/]+$).*)",
+      "destination": "/index.html"
+    }
   ]
 }

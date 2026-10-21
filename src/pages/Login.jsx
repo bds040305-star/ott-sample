@@ -1,11 +1,11 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/useAuthStore';
 
 
 export const Login = () => {
 
   const navigate = useNavigate();
+  const location = useLocation();
 
 
   // 전역변수
@@ -19,7 +19,7 @@ export const Login = () => {
 
     if (user) {
 
-      navigate("/selectMember");
+      navigate(location.state?.from === "/sports" ? "/sports" : "/selectMember");
 
     }
 
