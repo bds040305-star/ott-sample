@@ -51,10 +51,11 @@ function AuthenticatedChat({ video, user }) {
 }
 export function GameChat({ video }) {
   const [user, setUser] = useState(auth.currentUser)
+  const rulesConfirmed = import.meta.env.VITE_LIVE_CHAT_RULES_CONFIRMED === 'true'
   useEffect(() => onAuthStateChanged(auth, setUser), [])
   return <aside className="sports-chat" aria-label="방송별 회원 채팅">
     <div className="sports-chat-heading"><h2>같이 응원해요 <span>MEMBERS CHAT</span></h2><span className="chat-connected">{user ? '회원 채팅' : '로그인 필요'}</span></div>
     <p className="sports-chat-room">{video.title}</p>
-    {user ? <AuthenticatedChat key={`${video.id}:${user.uid}`} video={video} user={user} /> : <div className="sports-messages"><p className="chat-empty">같은 방송을 보는 회원들과<br />함께 응원해 보세요.</p><p className="chat-login"><Link to="/login" state={{ from: '/sports' }}>기존 Google 계정으로 로그인</Link></p></div>}
+    {user ? rulesConfirmed ? <AuthenticatedChat key={`${video.id}:${user.uid}`} video={video} user={user} /> : <div className="sports-messages"><p className="chat-empty" role="status">채팅 서비스를 준비하고 있습니다.<br />현재 메시지를 전송할 수 없습니다.</p></div> : <div className="sports-messages"><p className="chat-empty">같은 방송을 보는 회원들과<br />함께 응원해 보세요.</p><p className="chat-login"><Link to="/login" state={{ from: '/sports' }}>기존 Google 계정으로 로그인</Link></p></div>}
   </aside>
 }
