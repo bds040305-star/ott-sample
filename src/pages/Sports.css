@@ -1,0 +1,594 @@
+.sports-page {
+  background:#0b0e15;
+  color:#f2f4fa;
+  min-height:100vh;
+  padding:120px 28px 64px;
+  font-family:Arial,'Noto Sans KR',sans-serif;
+}
+.sports-container {
+  max-width:1440px;
+  margin:0 auto;
+}
+.sports-page-heading,.sports-schedule-heading,.sports-feed-status,.sports-chat-heading,.sports-match-info,.sports-card-top,.sports-card-bottom {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.sports-eyebrow {
+  font-size:11px;
+  letter-spacing:2.5px;
+  color:#8c99ae;
+  font-weight:700;
+}
+.sports-page-heading h1 {
+  font-size:38px;
+  font-weight:800;
+  margin:8px 0;
+}
+.sports-page-heading h1 span {
+  display:inline-block;
+  vertical-align:middle;
+  margin-left:10px;
+  border:1px solid #ff5e69;
+  color:#ff5e69;
+  font-size:12px;
+  letter-spacing:1px;
+  padding:4px 8px;
+  border-radius:5px;
+}
+.sports-page-heading p:last-child {
+  color:#9ca6b8;
+  font-size:14px;
+}
+.sports-league {
+  border:1px solid #343b4c;
+  border-radius:24px;
+  padding:10px 20px;
+  font-size:13px;
+}
+.sports-feed-status {
+  margin:24px 0 20px;
+  color:#b8c2d4;
+  font-size:12px;
+  padding:12px 16px;
+  border:1px solid #293145;
+  background:#141a26;
+  border-radius:9px;
+}
+.sports-feed-status button {
+  white-space:nowrap;
+  color:#c3e969;
+  cursor:pointer;
+}
+.sports-watch-layout {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 340px;
+  gap:20px;
+}
+.sports-watch {
+  min-width:0;
+  background:#141925;
+  border:1px solid #2a3142;
+  border-radius:14px;
+  overflow:hidden;
+}
+.sports-player {
+  position:relative;
+  background:#090c12;
+  aspect-ratio:16/9;
+  overflow:hidden;
+}
+.sports-player iframe {
+  width:100%;
+  height:100%;
+  border:0;
+}
+.sports-player-empty {
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:38px 22px;
+  background:radial-gradient(ellipse at 50% 100%,#243a32 0,transparent 65%),linear-gradient(135deg,#192434,#0c111c);
+}
+.sports-baseball {
+  font-size:54px;
+  margin-bottom:14px;
+}
+.sports-player-empty h2 {
+  font-size:24px;
+  font-weight:700;
+  margin:12px 0;
+}
+.sports-player-empty p {
+  color:#aeb9ca;
+  font-size:13px;
+}
+.sports-player-note {
+  font-size:11px;
+  color:#8f9aac;
+  margin-top:14px;
+}
+.sports-stream-terms {
+  margin-top: 8px;
+  font-size: 10px;
+  color: #8f9aac;
+}
+.sports-official-link {
+  font-size:12px;
+  margin-top:15px;
+  border:1px solid #93b653;
+  border-radius:6px;
+  padding:7px 12px;
+  color:#caef88!important;
+}
+.sports-player-top {
+  position:absolute;
+  top:18px;
+  left:18px;
+  right:18px;
+  display:flex;
+  justify-content:space-between;
+  pointer-events:none;
+  font-size:10px;
+  letter-spacing:1px;
+  color:#c4cdda;
+}
+.sports-badge {
+  display:inline-block;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.4px;
+  color:#bdc7dc;
+  background:#283144;
+  border-radius:4px;
+  padding:4px 7px;
+}
+.sports-badge.live {
+  background:#e54357;
+  color:white;
+}
+.sports-badge.live:before {
+  content:'●';
+  font-size:8px;
+  margin-right:5px;
+}
+.sports-match-info {
+  padding:22px;
+}
+.sports-match-info p {
+  font-size:11px;
+  color:#8f9bad;
+  margin-bottom:9px;
+}
+.sports-match-info h2 {
+  font-size:18px;
+  font-weight:700;
+}
+.sports-match-info h2 span {
+  font-size:12px;
+  color:#7d8ba1;
+  margin:0 7px;
+}
+.sports-main-score {
+  font-size:25px;
+  white-space:nowrap;
+  text-align:center;
+  font-weight:700;
+}
+.sports-main-score>span {
+  color:#627087;
+}
+.sports-main-score small {
+  display:block;
+  font-size:10px;
+  color:#a0aec2;
+  font-weight:400;
+}
+.sports-chat {
+  border:1px solid #2a3142;
+  border-radius:14px;
+  background:#141925;
+  display:flex;
+  flex-direction:column;
+  min-height:440px;
+  max-height:650px;
+  overflow:hidden;
+}
+.sports-chat-heading {
+  padding:18px 16px 12px;
+}
+.sports-chat-heading h2 {
+  font-size:14px;
+  font-weight:700;
+}
+.sports-chat-heading h2 span {
+  display:block;
+  font-size:9px;
+  letter-spacing:1.6px;
+  color:#8390a6;
+  margin-top:4px;
+}
+.chat-connected {
+  font-size:10px;
+  color:#b5df75;
+}
+.chat-offline {
+  font-size:10px;
+  color:#91a0b7;
+}
+.sports-chat-room {
+  font-size:11px;
+  padding:0 16px 14px;
+  color:#aebad0;
+  border-bottom:1px solid #293043;
+}
+.sports-messages {
+  flex:1;
+  overflow:auto;
+  padding:16px;
+  min-height:190px;
+  max-height:380px;
+  scrollbar-width:thin;
+  scrollbar-color:#3f4a5e transparent;
+}
+.chat-notice {
+  font-size:11px;
+  color:#8f9db2;
+  background:#1c2433;
+  padding:10px;
+  border-radius:7px;
+  line-height:1.7;
+}
+.chat-empty {
+  color:#97a5bb;
+  font-size:12px;
+  text-align:center;
+  line-height:1.9;
+  padding:30px 0;
+}
+.chat-message {
+  margin-top:17px;
+}
+.chat-message>div {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.chat-message strong {
+  font-size:11px;
+  color:#b7c5dc;
+}
+.chat-message time {
+  font-size:9px;
+  color:#738199;
+}
+.chat-message p {
+  display:inline-block;
+  font-size:13px;
+  background:#242d3e;
+  padding:9px 12px;
+  border-radius:0 9px 9px 9px;
+  margin-top:6px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.chat-message.is-mine strong {
+  color:#c2e88e;
+}
+.chat-message.is-mine p {
+  background:#33462c;
+}
+.chat-login {
+  font-size:11px;
+  padding:8px 16px;
+  color:#9cabc1;
+}
+.chat-login a {
+  color:#c6e895;
+  text-decoration:underline;
+}
+.sports-chat-form {
+  border-top:1px solid #293043;
+  padding:12px 14px;
+}
+.sports-chat-form>div {
+  display:flex;
+  background:#0e131e;
+  border:1px solid #30394d;
+  border-radius:8px;
+  padding:6px;
+  gap:5px;
+}
+.sports-chat-form input {
+  background:transparent;
+  min-width:0;
+  width:100%;
+  padding:4px 6px;
+  outline:none;
+  font-size:12px;
+  color:#e8edf5;
+}
+.sports-chat-form button {
+  background:#c5eb83;
+  color:#172510;
+  border-radius:5px;
+  min-width:30px;
+  font-weight:800;
+  cursor:pointer;
+}
+.sports-chat-form button:disabled {
+  opacity:.35;
+  cursor:not-allowed;
+}
+.sports-chat-form small {
+  display:block;
+  color:#8591a6;
+  font-size:10px;
+  text-align:right;
+  margin-top:6px;
+}
+.sports-chat-form>p {
+  font-size:11px;
+  color:#ff9b9b;
+  padding-top:7px;
+}
+.sports-schedule {
+  margin-top:38px;
+}
+.sports-schedule-heading h2 {
+  font-size:23px;
+  font-weight:700;
+}
+.sports-schedule-heading h2 span {
+  font-size:15px;
+  color:#bfe78c;
+  margin-left:8px;
+}
+.sports-schedule-heading p {
+  font-size:11px;
+  color:#8b9ab1;
+}
+.sports-filters {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:20px 0;
+}
+.sports-filters button {
+  border:1px solid #30394b;
+  border-radius:22px;
+  padding:8px 16px;
+  font-size:12px;
+  color:#aebbd0;
+  cursor:pointer;
+}
+.sports-filters button.active {
+  border-color:#c6eb85;
+  color:#c6eb85;
+  background:#253021;
+}
+.sports-filters>span {
+  margin-left:auto;
+  font-size:10px;
+  color:#8492a9;
+}
+.sports-games {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+.sports-game-card {
+  text-align:left;
+  background:#151b28;
+  border:1px solid #293348;
+  border-radius:12px;
+  padding:17px;
+  cursor:pointer;
+  transition:border-color .2s,transform .2s;
+}
+.sports-game-card:hover {
+  border-color:#839b66;
+  transform:translateY(-2px);
+}
+.sports-game-card.selected {
+  border-color:#c1e58a;
+  background:#1c2826;
+}
+.sports-card-top {
+  font-size:10px;
+  color:#95a3ba;
+  margin-bottom:17px;
+}
+.sports-team {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:12px 0;
+}
+.sports-team-icon {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#263857;
+  color:#b2cffa;
+  width:31px;
+  height:31px;
+  border-radius:50%;
+  font-size:15px;
+  font-weight:800;
+  flex-shrink:0;
+}
+.sports-team-icon.team-1 {
+  background:#512632;
+  color:#ffbdc9;
+}
+.sports-team-icon.team-2 {
+  background:#24463e;
+  color:#a7e5cb;
+}
+.sports-team strong {
+  font-size:12px;
+  font-weight:600;
+}
+.sports-team b {
+  margin-left:auto;
+  font-size:18px;
+}
+.sports-card-bottom {
+  border-top:1px solid #2c3546;
+  padding-top:12px;
+  margin-top:16px;
+  font-size:10px;
+  color:#91a0b6;
+}
+.sports-card-bottom strong {
+  color:#bfdf94;
+  white-space:nowrap;
+}
+.sports-disclaimer {
+  font-size:11px;
+  color:#7f8da4;
+  margin-top:22px;
+  line-height:1.8;
+}
+.sports-no-games {
+  text-align:center;
+  padding:45px 15px;
+  color:#9ba9bf;
+  font-size:13px;
+}
+.sports-page button:focus-visible,.sports-page a:focus-visible,.sports-page input:focus-visible {
+  outline:2px solid #c6eb85;
+  outline-offset:4px;
+}
+@media(min-width:1800px) {
+  .sports-player-empty h2 {
+    font-size:30px;
+  }
+}
+@media(max-width:1050px) {
+  .sports-watch-layout {
+    grid-template-columns:minmax(0,1fr) 300px;
+  }
+  .sports-games {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .sports-player-empty h2 {
+    font-size:18px;
+  }
+  .sports-baseball {
+    font-size:38px;
+    margin-bottom:5px;
+  }
+  .sports-match-info h2 {
+    font-size:14px;
+  }
+}
+@media(max-width:760px) {
+  .sports-page {
+    padding:210px 16px 40px;
+  }
+  .sports-watch-layout {
+    grid-template-columns:1fr;
+  }
+  .sports-chat {
+    height:430px;
+    min-height:0;
+  }
+  .sports-games {
+    grid-template-columns:1fr;
+  }
+  .sports-page-heading h1 {
+    font-size:30px;
+  }
+  .sports-league {
+    padding:9px;
+    font-size:11px;
+  }
+  .sports-schedule-heading p {
+    display:none;
+  }
+  .sports-filters {
+    flex-wrap:wrap;
+  }
+  .sports-filters>span {
+    width:100%;
+    margin:5px 0;
+  }
+  .sports-player-empty h2 {
+    font-size:16px;
+  }
+  .sports-player-empty p {
+    font-size:11px;
+  }
+  .sports-baseball {
+    font-size:30px;
+  }
+  .sports-player-empty {
+    padding-top:45px;
+  }
+  .sports-player-note {
+    margin-top:6px;
+  }
+  .sports-official-link {
+    margin-top:6px;
+  }
+  .sports-match-info {
+    padding:15px;
+  }
+  .sports-match-info h2 {
+    font-size:13px;
+  }
+  .sports-main-score {
+    font-size:20px;
+  }
+  .sports-site-header .inner {
+    padding-left:16px;
+    padding-right:16px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .sports-site-header .header-left {
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .sports-site-header .header-left ul {
+    gap:12px;
+    flex-wrap:wrap;
+    font-size:12px;
+  }
+  .sports-site-header .header-right {
+    font-size:12px;
+  }
+}
+.sports-site-header>.inner {
+  max-width:1440px;
+  padding-left:28px;
+  padding-right:28px;
+}
+.sports-site-header .header-left {
+  min-width:0;
+}
+.sports-site-header a[aria-current="page"] {
+  color:#c6eb85;
+}
+@media(max-width:760px) {
+  .sports-site-header {
+    padding-top:16px;
+    padding-bottom:16px;
+  }
+  .sports-site-header h1 img {
+    width:120px;
+  }
+  .sports-site-header .header-left ul {
+    column-gap:16px;
+    row-gap:8px;
+  }
+  .sports-league {
+    white-space:nowrap;
+  }
+}

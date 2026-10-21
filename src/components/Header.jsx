@@ -1,4 +1,3 @@
-import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/useAuthStore'
 
@@ -8,9 +7,8 @@ const mainMenu = [
     { id: 3, menu: "NEW 요즘 대세 콘텐츠", path: "/new" },
     { id: 4, menu: "애니메이션", path: "/animate" },
     { id: 5, menu: "찜리스트", path: "/heart" },
+    { id: 6, menu: "스포츠", path: "/sports" },
 ]
-
-const familys = ["아빠", "엄마", "아들", "딸"];
 
 export const Header = () => {
 
@@ -21,15 +19,14 @@ export const Header = () => {
     const { user, currentMember } = useAuthStore();
 
     const isHome = location.pathname === "/";
-
-    console.log(isHome);
+    const isSports = location.pathname === "/sports";
 
     return (
         <header
-            className={`fixed z-10000 w-full py-5 ${
+            className={`fixed z-10000 w-full py-5 ${isSports ? 'sports-site-header' : ''} ${
                 isHome
                     ? "bg-transparent"
-                    : "bg-green-500"
+                    : isSports ? "bg-[#0b0e15] border-b border-white/10" : "bg-green-500"
             }`}
         >
 
@@ -55,9 +52,10 @@ export const Header = () => {
                             <li key={menu.id}>
 
                                 <Link
+                                    aria-current={location.pathname.toLowerCase() === menu.path ? 'page' : undefined}
                                     className={
-                                        isHome
-                                            ? "text-white"
+                                        isHome || isSports
+                                            ? (isSports && menu.path === '/sports' ? "text-[#c6eb85] font-bold" : "text-white")
                                             : "text-black"
                                     }
                                     to={menu.path}
@@ -76,7 +74,7 @@ export const Header = () => {
 
                 <div
                     className={`header-right ${
-                        isHome
+                        isHome || isSports
                             ? "text-white"
                             : "text-black"
                     }`}
